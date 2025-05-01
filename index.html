@@ -1,58 +1,218 @@
-<!DOCTYPE html>  
-<html lang="pt">  
-<head>  
-<meta charset="UTF-8" />  
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />  
-<title>Controle de Transporte de Cargas</title>  
-<link rel="stylesheet" href="styles.css" />  
-</head>  
-<body>  
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Controle de Transporte de Cargas</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
 
-<h1>Controle de Transporte de Cargas</h1>  
+h1, h3 {
+    color: #333;
+}
 
-<!-- Formulário para inserir/editar carga -->  
-<form id="loadForm">  
-  <input type="hidden" id="recordId" />  
-  <label>Data:</label>  
-  <input type="date" id="date" required /><br/>  
-  
-  <label>Local de Carregamento:</label>  
-  <input type="text" id="loadingPlace" placeholder="Ex: Laboratório XYZ" required /><br/>  
-  
-  <label>Horário:</label>  
-  <input type="time" id="loadingTime" min="06:00" max="08:00" required /><br/>  
-  
-  <label>Pontos de entrega (2-11):</label>  
-  <textarea id="deliveryPoints" placeholder="Liste pontos separados por vírgula" required></textarea><br/>  
-  
-  <label>Distância (km):</label>  
-  <input type="number" id="distance" min="60" max="90" required /><br/>  
-  
-  <button type="submit">Salvar</button>  
-  <button type="button" onclick="limparFormulario()">Cancelar</button>  
-</form>  
+form {
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    max-width: 600px;
+}
 
-<!-- Filtros -->  
-<h3>Filtrar registros</h3>  
-<input type="date" id="filterDate" />  
-<button onclick="filtrarPorData()">Filtrar por Data</button>  
-<button onclick="limparFiltro()">Limpar Filtros</button>  
+input, textarea {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+    box-sizing: border-box;
+}
 
-<!-- Tabela de registros -->  
-<table id="recordsTable" border="1">  
-  <thead>  
-    <tr>  
-      <th>Data</th>  
-      <th>Local de Carregamento</th>  
-      <th>Horário</th>  
-      <th>Pontos de entrega</th>  
-      <th>Distância</th>  
-      <th>Ações</th>  
-    </tr>  
-  </thead>  
-  <tbody></tbody>  
-</table>  
+button {
+    padding: 8px 12px;
+    margin-right: 10px;
+    cursor: pointer;
+}
 
-<script src="script.js"></script>  
-</body>  
-</html>  
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 8px;
+    text-align: left;
+}
+
+button.editar-btn {
+    margin-right: 5px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+button.excluir-btn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<h1>Controle de Transporte de Cargas</h1>
+
+<!-- Formulário para inserir/editar carga -->
+<form id="loadForm">
+  <input type="hidden" id="recordId" />
+  <label>Data:</label>
+  <input type="date" id="date" required /><br/>
+
+  <label>Local de Carregamento:</label>
+  <input type="text" id="loadingPlace" placeholder="Ex: Laboratório XYZ" required /><br/>
+
+  <label>Horário:</label>
+  <input type="time" id="loadingTime" min="06:00" max="08:00" required /><br/>
+
+  <label>Pontos de entrega (2-11):</label>
+  <textarea id="deliveryPoints" placeholder="Liste pontos separados por vírgula" required></textarea><br/>
+
+  <label>Distância (km):</label>
+  <input type="number" id="distance" min="60" max="90" required /><br/>
+
+  <button type="submit">Salvar</button>
+  <button type="button" onclick="limparFormulario()">Cancelar</button>
+</form>
+
+<!-- Filtros -->
+<h3>Filtrar registros</h3>
+<input type="date" id="filterDate" />
+<button onclick="filtrarPorData()">Filtrar por Data</button>
+<button onclick="limparFiltro()">Limpar Filtros</button>
+
+<!-- Tabela de registros -->
+<table id="recordsTable" border="1">
+  <thead>
+    <tr>
+      <th>Data</th>
+      <th>Local de Carregamento</th>
+      <th>Horário</th>
+      <th>Pontos de entrega</th>
+      <th>Distância</th>
+      <th>Ações</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+  // Função para carregar os registros do localStorage ao iniciar
+  function carregarRegistros() {
+    const registros = JSON.parse(localStorage.getItem('registros')) || [];
+    exibirRegistros(registros);
+  }
+
+  // Função para exibir os registros na tabela
+  function exibirRegistros(registros) {
+    const tbody = document.querySelector('#recordsTable tbody');
+    tbody.innerHTML = ''; // Limpa a tabela antes de preencher
+
+    registros.forEach((registro, index) => {
+      const fila = document.createElement('tr');
+
+      fila.innerHTML = `
+        <td>${registro.date}</td>
+        <td>${registro.loadingPlace}</td>
+        <td>${registro.loadingTime}</td>
+        <td>${registro.deliveryPoints}</td>
+        <td>${registro.distance}</td>
+        <td>
+          <button class="editar-btn" onclick="editarRegistro(${index})">Editar</button>
+          <button class="excluir-btn" onclick="excluirRegistro(${index})">Excluir</button>
+        </td>
+      `;
+      tbody.appendChild(fila);
+    });
+  }
+
+  // Função para salvar um novo registro ou atualizar um existente
+  function salvarDados(event) {
+    event.preventDefault();
+
+    const recordId = document.getElementById('recordId').value;
+    const novoRegistro = {
+      date: document.getElementById('date').value,
+      loadingPlace: document.getElementById('loadingPlace').value,
+      loadingTime: document.getElementById('loadingTime').value,
+      deliveryPoints: document.getElementById('deliveryPoints').value,
+      distance: document.getElementById('distance').value,
+    };
+
+    let registros = JSON.parse(localStorage.getItem('registros')) || [];
+
+    if (recordId) {
+      registros[recordId] = novoRegistro;
+    } else {
+      registros.push(novoRegistro);
+    }
+
+    localStorage.setItem('registros', JSON.stringify(registros));
+    limparFormulario();
+    carregarRegistros();
+  }
+
+  // Função para editar um registro
+  function editarRegistro(index) {
+    const registros = JSON.parse(localStorage.getItem('registros')) || [];
+    const reg = registros[index];
+
+    document.getElementById('recordId').value = index;
+    document.getElementById('date').value = reg.date;
+    document.getElementById('loadingPlace').value = reg.loadingPlace;
+    document.getElementById('loadingTime').value = reg.loadingTime;
+    document.getElementById('deliveryPoints').value = reg.deliveryPoints;
+    document.getElementById('distance').value = reg.distance;
+  }
+
+  // Função para excluir um registro
+  function excluirRegistro(index) {
+    let registros = JSON.parse(localStorage.getItem('registros')) || [];
+    registros.splice(index, 1);
+    localStorage.setItem('registros', JSON.stringify(registros));
+    carregarRegistros();
+  }
+
+  // Limpar formulário
+  function limparFormulario() {
+    document.getElementById('loadForm').reset();
+    document.getElementById('recordId').value = '';
+  }
+
+  // Filtrar registros por data
+  function filtrarPorData() {
+    const filtroData = document.getElementById('filterDate').value;
+    const registros = JSON.parse(localStorage.getItem('registros')) || [];
+    const filtrados = registros.filter(r => r.date === filtroData);
+    exibirRegistros(filtrados);
+  }
+
+  function limparFiltro() {
+    document.getElementById('filterDate').value = '';
+    carregarRegistros();
+  }
+
+  document.getElementById('loadForm').addEventListener('submit', salvarDados);
+
+  // Carregar registros na abertura da página
+  window.onload = carregarRegistros;
+</script>
+
+</body>
+</html>

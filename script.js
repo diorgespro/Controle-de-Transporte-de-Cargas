@@ -1,48 +1,102 @@
-const urlWebApp = 'https://script.google.com/macros/s/AKfycbzJGZuLUj2Efp6nxI4mhuLwZTvepFPMtstJ2oeUd2zb-ZM3me94Dt3cuMk6hdG4jpQ/exec'; // sua URL do Web App
-
-// Função que envia os dados para o Google Apps Script
-async function enviarDados(dados) {
-  try {
-    const response = await fetch(urlWebApp, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(dados),
-    });
-
-    const resultado = await response.json();
-    console.log('Resposta do servidor:', resultado);
-    if (resultado.status === 'sucesso') {
-      alert('Dados salvos com sucesso!');
-      limparFormulario(); // opcional: limpa o formulário após salvar
-      // Aqui você pode atualizar a tabela ou realizar outras ações
-    } else {
-      alert('Erro ao salvar: ' + resultado.message);
-    }
-  } catch (error) {
-    console.error('Erro na requisição:', error);
-    alert('Erro na requisição: ' + error.message);
-  }
+// Função para carregar os registros do localStorage ao iniciar
+function carregarRegistros() {
+  const registros = JSON.parse(localStorage.getItem('registros')) || [];
+  exibirRegistros(registros);
 }
 
-// Função que captura os dados do formulário e envia
-function salvarFormulario(event) {
-  event.preventDefault(); // evita envio padrão do formulário
-  const dados = {
+// Função para exibir os registros na tabela
+function exibirRegistros(registros) {
+  const tbody = document.querySelector('#recordsTable tbody');
+  tbody.innerHTML = ''; // Limpa a tabela antes de preencher
+
+  registros.forEach((registro, index) => {
+    const fila = document.createElement('tr');
+
+    fila.innerHTML = `
+      <td>${registro.date}</td>
+      <td>${registro.loadingPlace}</td>
+      <td>${registro.loadingTime}</td>
+      <td>${registro.deliveryPoints}</td>
+      <td>${registro.distance}</td>
+      <td>
+        <button onclick="editarRegistro(${index})">Editar</button>
+        <button onclick="excluirRegistro(${index})">Excluir</button>
+      </td>
+    `;
+    tbody.appendChild(fila);
+  });
+}
+
+// Função para salvar um novo registro ou atualizar um existente
+function salvarDados(event) {
+  event.preventDefault();
+
+  const recordId = document.getElementById('recordId').value;
+  const novoRegistro = {
     date: document.getElementById('date').value,
     loadingPlace: document.getElementById('loadingPlace').value,
     loadingTime: document.getElementById('loadingTime').value,
     deliveryPoints: document.getElementById('deliveryPoints').value,
-    distance: document.getElementById('distance').value
+    distance: document.getElementById('distance').value,
   };
-  enviarDados(dados);
+
+  let registros = JSON.parse(localStorage.getItem('registros')) || [];
+
+  if (recordId) {
+    // Atualizar registro existente
+    registros[recordId] = novoRegistro;
+  } else {
+    // Adicionar novo registro
+    registros.push(novoRegistro);
+  }
+
+  localStorage.setItem('registros', JSON.stringify(registros));
+  limparFormulario();
+  carregarRegistros();
 }
 
-// Função para limpar o formulário após o envio
+// Função para editar um registro
+function editarRegistro(index) {
+  const registros = JSON.parse(localStorage.getItem('registros')) || [];
+  const reg = registros[index];
+
+  document.getElementById('recordId').value = index;
+  document.getElementById('date').value = reg.date;
+  document.getElementById('loadingPlace').value = reg.loadingPlace;
+  document.getElementById('loadingTime').value = reg.loadingTime;
+  document.getElementById('deliveryPoints').value = reg.deliveryPoints;
+  document.getElementById('distance').value = reg.distance;
+}
+
+// Função para excluir um registro
+function excluirRegistro(index) {
+  let registros = JSON.parse(localStorage.getItem('registros')) || [];
+  registros.splice(index, 1); // Remove o item
+  localStorage.setItem('registros', JSON.stringify(registros));
+  carregarRegistros(); // Atualiza a tabela
+}
+
+// Limpar formulário
 function limparFormulario() {
   document.getElementById('loadForm').reset();
+  document.getElementById('recordId').value = '';
 }
 
-// Associar o evento do formulário ao script
-document.getElementById('loadForm').addEventListener('submit', salvarFormulario);
+// Filtros (opcional, se quiser)
+function filtrarPorData() {
+  const filtroData = document.getElementById('filterDate').value;
+  const registros = JSON.parse(localStorage.getItem('registros')) || [];
+  const filtrados = registros.filter(r => r.date === filtroData);
+  exibirRegistros(filtrados);
+}
+
+function limparFiltro() {
+  document.getElementById('filterDate').value = '';
+  carregarRegistros();
+}
+
+// Evento para salvar ao submeter o formulário
+document.getElementById('loadForm').addEventListener('submit', salvarDados);
+
+// Carregar registros ao iniciar
+window.onload = carregarRegistros;
