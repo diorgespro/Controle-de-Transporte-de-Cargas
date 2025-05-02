@@ -1,7 +1,10 @@
-body {  
-    font-family: Arial, sans-serif;  
-    margin: 20px;  
-  }  
+body {
+  font-family: Arial, sans-serif;
+  margin: 0 auto;
+  padding: 10px;
+  max-width: 800px; /* Limite a largura total do conteúdo em telas grandes */
+  box-sizing: border-box;
+}
   
   h1, h3 {  
     color: #333;  
