@@ -1,102 +1,161 @@
-// Função para carregar os registros do localStorage ao iniciar
-function carregarRegistros() {
-  const registros = JSON.parse(localStorage.getItem('registros')) || [];
-  exibirRegistros(registros);
-}
+// Array para armazenar os registros
+let registros = [];
 
-// Função para exibir os registros na tabela
-function exibirRegistros(registros) {
-  const tbody = document.querySelector('#recordsTable tbody');
-  tbody.innerHTML = '';
+// Variável para editar registros
+let registroEditadoIndex = -1;
 
-  registros.forEach((registro, index) => {
-    const fila = document.createElement('tr');
+// Função para salvar registro (novo ou edição)
+function salvarRegistro() {
+  const data = document.getElementById('date').value;
+  const localCarga = document.getElementById('loadingPlace').value;
+  const horario = document.getElementById('loadingTime').value;
+  const pontos = document.getElementById('deliveryPoints').value;
+  const distancia = document.getElementById('distance').value;
 
-    fila.innerHTML = `
-      <td data-label="Data">${registro.date}</td>
-      <td data-label="Local de Carregamento">${registro.loadingPlace}</td>
-      <td data-label="Horário">${registro.loadingTime}</td>
-      <td data-label="Pontos de entrega">${registro.deliveryPoints}</td>
-      <td data-label="Distância">${registro.distance}</td>
-      <td data-label="Ações">
-        <button onclick="editarRegistro(${index})">Editar</button>
-        <button onclick="excluirRegistro(${index})">Excluir</button>
-      </td>
-    `;
-    tbody.appendChild(fila);
-  });
-}
-
-// Função para salvar novo registro ou atualizar existente
-function salvarDados(event) {
-  event.preventDefault();
-
-  const recordId = document.getElementById('recordId').value;
-  const novoRegistro = {
-    date: document.getElementById('date').value,
-    loadingPlace: document.getElementById('loadingPlace').value,
-    loadingTime: document.getElementById('loadingTime').value,
-    deliveryPoints: document.getElementById('deliveryPoints').value,
-    distance: document.getElementById('distance').value,
-  };
-
-  let registros = JSON.parse(localStorage.getItem('registros')) || [];
-
-  if (recordId) {
-    // Atualizar registro
-    registros[recordId] = novoRegistro;
-  } else {
-    // Adicionar novo
-    registros.push(novoRegistro);
+  if (!data || !localCarga || !horario || !pontos || !distancia) {
+    alert('Por favor, preencha todos os campos.');
+    return;
   }
 
-  localStorage.setItem('registros', JSON.stringify(registros));
+  const novoRegistro = {
+    data,
+    localCarga,
+    horario,
+    pontos,
+    distancia
+  };
+
+  if (registroEditadoIndex === -1) {
+    // Novo registro
+    registros.push(novoRegistro);
+    adicionarLinhaTabela(novoRegistro);
+  } else {
+    // Edição
+    registros[registroEditadoIndex] = novoRegistro;
+    atualizarLinhaTabela(registroEditadoIndex, novoRegistro);
+    registroEditadoIndex = -1;
+  }
   limparFormulario();
-  carregarRegistros();
 }
 
-// Editar um registro
-function editarRegistro(index) {
-  const registros = JSON.parse(localStorage.getItem('registros')) || [];
+// Função para adicionar linha na tabela
+function adicionarLinhaTabela(reg) {
+  const tbody = document.querySelector('#recordsTable tbody');
+  const tr = document.createElement('tr');
+  tr.setAttribute('data-index', registros.length -1);
+  tr.innerHTML = `
+    <td data-label="Data">${reg.data}</td>
+    <td data-label="Local de Carga">${reg.localCarga}</td>
+    <td data-label="Horário">${reg.horario}</td>
+    <td data-label="Pontos de entrega">${reg.pontos}</td>
+    <td data-label="Distância">${reg.distancia} km</td>
+    <td data-label="Ações">
+      <button onclick="editarRegistro(this)">Editar</button>
+      <button onclick="excluirRegistro(this)">Excluir</button>
+    </td>
+  `;
+  tbody.appendChild(tr);
+}
+
+// Função para atualizar linha na tabela
+function atualizarLinhaTabela(index, reg) {
+  const tbody = document.querySelector('#recordsTable tbody');
+  const tr = tbody.querySelector(`tr[data-index='${index}']`);
+  if (tr) {
+    tr.innerHTML = `
+      <td data-label="Data">${reg.data}</td>
+      <td data-label="Local de Carga">${reg.localCarga}</td>
+      <td data-label="Horário">${reg.horario}</td>
+      <td data-label="Pontos de entrega">${reg.pontos}</td>
+      <td data-label="Distância">${reg.distancia} km</td>
+      <td data-label="Ações">
+        <button onclick="editarRegistro(this)">Editar</button>
+        <button onclick="excluirRegistro(this)">Excluir</button>
+      </td>
+    `;
+  }
+}
+
+// Função para editar registro
+function editarRegistro(btn) {
+  const tr = btn.closest('tr');
+  const index = parseInt(tr.getAttribute('data-index'));
+
   const reg = registros[index];
+  document.getElementById('date').value = reg.data;
+  document.getElementById('loadingPlace').value = reg.localCarga;
+  document.getElementById('loadingTime').value = reg.horario;
+  document.getElementById('deliveryPoints').value = reg.pontos;
+  document.getElementById('distance').value = reg.distancia;
 
-  document.getElementById('recordId').value = index;
-  document.getElementById('date').value = reg.date;
-  document.getElementById('loadingPlace').value = reg.loadingPlace;
-  document.getElementById('loadingTime').value = reg.loadingTime;
-  document.getElementById('deliveryPoints').value = reg.deliveryPoints;
-  document.getElementById('distance').value = reg.distance;
+  registroEditadoIndex = index;
 }
 
-// Excluir um registro
-function excluirRegistro(index) {
-  let registros = JSON.parse(localStorage.getItem('registros')) || [];
-  registros.splice(index, 1);
-  localStorage.setItem('registros', JSON.stringify(registros));
-  carregarRegistros();
+// Função para excluir registro
+function excluirRegistro(btn) {
+  if (!confirm('Deseja realmente excluir este registro?')) return;
+  const tr = btn.closest('tr');
+  const index = parseInt(tr.getAttribute('data-index'));
+  registros.splice(index,1);
+  tr.remove();
+  // Reajustar índices
+  const tbody = document.querySelector('#recordsTable tbody');
+  Array.from(tbody.children).forEach((tr, i) => {
+    tr.setAttribute('data-index', i);
+  });
 }
 
 // Limpar formulário
 function limparFormulario() {
   document.getElementById('loadForm').reset();
-  document.getElementById('recordId').value = '';
+  registroEditadoIndex = -1;
 }
 
-// Filtrar registros por data
+// Filtrar por data
 function filtrarPorData() {
-  const filtroData = document.getElementById('filterDate').value;
-  const registros = JSON.parse(localStorage.getItem('registros')) || [];
-  const filtrados = registros.filter(r => r.date === filtroData);
-  exibirRegistros(filtrados);
+  const filtro = document.getElementById('filterDate').value;
+  const tbody = document.querySelector('#recordsTable tbody');
+  Array.from(tbody.children).forEach(tr => {
+    const regIndex = parseInt(tr.getAttribute('data-index'));
+    const reg = registros[regIndex];
+    if (filtro && reg.data !== filtro) {
+      tr.style.display = 'none';
+    } else {
+      tr.style.display = '';
+    }
+  });
 }
 
+// Limpar filtro
 function limparFiltro() {
   document.getElementById('filterDate').value = '';
-  carregarRegistros();
+  const tbody = document.querySelector('#recordsTable tbody');
+  Array.from(tbody.children).forEach(tr => {
+    tr.style.display = '';
+  });
 }
 
-// Evento para salvar ao submeter o formulário
-document.getElementById('loadForm').addEventListener('submit', salvarDados);
+// Exportar registros para PDF
+async function exportarParaPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-// Carregar registros na abertura da página
-window.onload = carregarRegistros;
+  doc.text("Registros de Controle de Cargas", 14, 20);
+
+  const colunas = ['Data', 'Local de Carga', 'Horário', 'Pontos de entrega', 'Distância (km)'];
+  const rows = registros.map(reg => [
+    reg.data,
+    reg.localCarga,
+    reg.horario,
+    reg.pontos,
+    reg.distancia
+  ]);
+
+  await doc.autoTable({
+    startY: 30,
+    head: [colunas],
+    body: rows,
+  });
+
+  doc.save('registros_cargas.pdf');
+}

@@ -3,102 +3,37 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Controle de Transporte de Cargas</title>
-<style>
-  /* Mantemos o CSS atualizado aqui. Caso queira, posso enviá-lo separado. */
-  body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-  }
+<title>Controle de Cargas</title>
 
-  h1, h3 {
-    color: #333;
-  }
+<!-- Inclui CSS -->
+<link rel="stylesheet" href="styles.css" />
 
-  form {
-    margin-bottom: 20px;
-    border: 1px solid #ccc;
-    padding: 10px;
-    /* Removido max-width para melhor adaptação mobile */
-  }
-
-  input, textarea {
-    width: 100%;
-    margin-bottom: 10px;
-    padding: 8px;
-    box-sizing: border-box;
-  }
-
-  button {
-    padding: 8px 12px;
-    margin-right: 10px;
-    cursor: pointer;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-  }
-
-  th, td {
-    padding: 8px;
-    text-align: left;
-  }
-
-  /* Responsividade ajustada para dispositivos como iPhone 11 */
-  @media (max-width: 375px) {
-    table, thead, tbody, tr, th, td {
-      display: block;
-      width: 100%;
-    }
-
-    thead {
-      display: none;
-    }
-
-    tr {
-      border: 1px solid #ccc;
-      margin-bottom: 15px;
-      padding: 10px;
-    }
-
-    td {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-    }
-
-    td::before {
-      content: attr(data-label);
-      font-weight: bold;
-      flex-basis: 50%;
-      text-align: right;
-      padding-right: 10px;
-    }
-  }
-</style>
+<!-- Inclui jsPDF e autoTable -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 
-<h1>Controle de Transporte de Cargas</h1>
+<h1>Controle de Cargas</h1>
 
-<form id="loadForm">
+<!-- Botão para exportar registros em PDF -->
+<button id="btnExportarPDF" onclick="exportarParaPDF()">Salvar Registros em PDF</button>
+
+<form id="loadForm" onsubmit="event.preventDefault(); salvarRegistro();">
   <input type="hidden" id="recordId" />
   <label>Data:</label>
   <input type="date" id="date" required />
 
-  <label>Local de Carregamento:</label>
+  <label>Local de Carga:</label>
   <input type="text" id="loadingPlace" placeholder="Ex: Laboratório XYZ" required />
 
   <label>Horário:</label>
   <input type="time" id="loadingTime" min="06:00" max="08:00" required />
 
   <label>Pontos de entrega (2-11):</label>
-  <textarea id="deliveryPoints" placeholder="Liste pontos separados por vírgula" required></textarea />
+  <textarea id="deliveryPoints" placeholder="Liste pontos separados por vírgula" required></textarea>
 
-  <label>Distância (km):</label>
+  <label>Distância ( km):</label>
   <input type="number" id="distance" min="30" max="90" required />
 
   <button type="submit">Salvar</button>
@@ -114,7 +49,7 @@
   <thead>
     <tr>
       <th>Data</th>
-      <th>Local de Carregamento</th>
+      <th>Local de Carga</th>
       <th>Horário</th>
       <th>Pontos de entrega</th>
       <th>Distância</th>
@@ -124,99 +59,8 @@
   <tbody></tbody>
 </table>
 
-<script>
-  // Seu script permanece igual
-  function carregarRegistros() {
-    const registros = JSON.parse(localStorage.getItem('registros')) || [];
-    exibirRegistros(registros);
-  }
-
-  function exibirRegistros(registros) {
-    const tbody = document.querySelector('#recordsTable tbody');
-    tbody.innerHTML = '';
-
-    registros.forEach((registro, index) => {
-      const fila = document.createElement('tr');
-
-      fila.innerHTML = `
-        <td data-label="Data">${registro.date}</td>
-        <td data-label="Local de Carregamento">${registro.loadingPlace}</td>
-        <td data-label="Horário">${registro.loadingTime}</td>
-        <td data-label="Pontos de entrega">${registro.deliveryPoints}</td>
-        <td data-label="Distância">${registro.distance}</td>
-        <td data-label="Ações">
-          <button onclick="editarRegistro(${index})">Editar</button>
-          <button onclick="excluirRegistro(${index})">Excluir</button>
-        </td>
-      `;
-      tbody.appendChild(fila);
-    });
-  }
-
-  function salvarDados(event) {
-    event.preventDefault();
-
-    const recordId = document.getElementById('recordId').value;
-    const novoRegistro = {
-      date: document.getElementById('date').value,
-      loadingPlace: document.getElementById('loadingPlace').value,
-      loadingTime: document.getElementById('loadingTime').value,
-      deliveryPoints: document.getElementById('deliveryPoints').value,
-      distance: document.getElementById('distance').value,
-    };
-
-    let registros = JSON.parse(localStorage.getItem('registros')) || [];
-
-    if (recordId) {
-      registros[recordId] = novoRegistro;
-    } else {
-      registros.push(novoRegistro);
-    }
-
-    localStorage.setItem('registros', JSON.stringify(registros));
-    limparFormulario();
-    carregarRegistros();
-  }
-
-  function editarRegistro(index) {
-    const registros = JSON.parse(localStorage.getItem('registros')) || [];
-    const reg = registros[index];
-
-    document.getElementById('recordId').value = index;
-    document.getElementById('date').value = reg.date;
-    document.getElementById('loadingPlace').value = reg.loadingPlace;
-    document.getElementById('loadingTime').value = reg.loadingTime;
-    document.getElementById('deliveryPoints').value = reg.deliveryPoints;
-    document.getElementById('distance').value = reg.distance;
-  }
-
-  function excluirRegistro(index) {
-    let registros = JSON.parse(localStorage.getItem('registros')) || [];
-    registros.splice(index, 1);
-    localStorage.setItem('registros', JSON.stringify(registros));
-    carregarRegistros();
-  }
-
-  function limparFormulario() {
-    document.getElementById('loadForm').reset();
-    document.getElementById('recordId').value = '';
-  }
-
-  function filtrarPorData() {
-    const filtroData = document.getElementById('filterDate').value;
-    const registros = JSON.parse(localStorage.getItem('registros')) || [];
-    const filtrados = registros.filter(r => r.date === filtroData);
-    exibirRegistros(filtrados);
-  }
-
-  function limparFiltro() {
-    document.getElementById('filterDate').value = '';
-    carregarRegistros();
-  }
-
-  document.getElementById('loadForm').addEventListener('submit', salvarDados);
-  window.onload = carregarRegistros;
-</script>
+<!-- Inclui o JavaScript -->
+<script src="script.js"></script>
 
 </body>
 </html>
