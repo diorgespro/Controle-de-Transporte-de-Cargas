@@ -26,11 +26,9 @@ function salvarRegistro() {
   };
 
   if (registroEditadoIndex === -1) {
-    // Novo registro
     registros.push(novoRegistro);
-    adicionarLinhaTabela(novoRegistro);
+    inserirLinhaTabela(novoRegistro);
   } else {
-    // Edição
     registros[registroEditadoIndex] = novoRegistro;
     atualizarLinhaTabela(registroEditadoIndex, novoRegistro);
     registroEditadoIndex = -1;
@@ -38,11 +36,11 @@ function salvarRegistro() {
   limparFormulario();
 }
 
-// Função para adicionar linha na tabela
-function adicionarLinhaTabela(reg) {
+// Função para inserir nova linha na tabela
+function inserirLinhaTabela(reg) {
   const tbody = document.querySelector('#recordsTable tbody');
   const tr = document.createElement('tr');
-  tr.setAttribute('data-index', registros.length -1);
+  tr.setAttribute('data-index', registros.length - 1);
   tr.innerHTML = `
     <td data-label="Data">${reg.data}</td>
     <td data-label="Local de Carga">${reg.localCarga}</td>
@@ -57,7 +55,7 @@ function adicionarLinhaTabela(reg) {
   tbody.appendChild(tr);
 }
 
-// Função para atualizar linha na tabela
+// Função para atualizar linha existente
 function atualizarLinhaTabela(index, reg) {
   const tbody = document.querySelector('#recordsTable tbody');
   const tr = tbody.querySelector(`tr[data-index='${index}']`);
@@ -76,7 +74,7 @@ function atualizarLinhaTabela(index, reg) {
   }
 }
 
-// Função para editar registro
+// Editar registro
 function editarRegistro(btn) {
   const tr = btn.closest('tr');
   const index = parseInt(tr.getAttribute('data-index'));
@@ -91,14 +89,16 @@ function editarRegistro(btn) {
   registroEditadoIndex = index;
 }
 
-// Função para excluir registro
+// Excluir registro
 function excluirRegistro(btn) {
   if (!confirm('Deseja realmente excluir este registro?')) return;
   const tr = btn.closest('tr');
   const index = parseInt(tr.getAttribute('data-index'));
-  registros.splice(index,1);
+
+  registros.splice(index, 1);
   tr.remove();
-  // Reajustar índices
+
+  // Reajustar índices após exclusão
   const tbody = document.querySelector('#recordsTable tbody');
   Array.from(tbody.children).forEach((tr, i) => {
     tr.setAttribute('data-index', i);
@@ -126,7 +126,7 @@ function filtrarPorData() {
   });
 }
 
-// Limpar filtro
+// Limpar filtros
 function limparFiltro() {
   document.getElementById('filterDate').value = '';
   const tbody = document.querySelector('#recordsTable tbody');
@@ -135,13 +135,20 @@ function limparFiltro() {
   });
 }
 
-// Exportar registros para PDF
+// Exportar para PDF
 async function exportarParaPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  doc.text("Registros de Controle de Cargas", 14, 20);
+  // Título centralizado
+  const titulo = "Registros de Controle de Cargas";
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const titleX = pageWidth / 2;
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(titulo, titleX, 20, { align: 'center' });
 
+  // Dados para a tabela
   const colunas = ['Data', 'Local de Carga', 'Horário', 'Pontos de entrega', 'Distância (km)'];
   const rows = registros.map(reg => [
     reg.data,
@@ -151,11 +158,29 @@ async function exportarParaPDF() {
     reg.distancia
   ]);
 
+  // Configurações do autoTable para melhor distribuição
   await doc.autoTable({
     startY: 30,
     head: [colunas],
     body: rows,
+    styles: {
+      font: 'helvetica',
+      fontSize: 10,
+      cellPadding: 3,
+    },
+    headStyles: {
+      fillColor: [41, 128, 185],
+      textColor: 255,
+      fontStyle: 'bold',
+    },
+    alternateRowStyles: {
+      fillColor: [240, 240, 240],
+    },
+    margin: { left: 15, right: 15 },
+    tableLineColor: [44, 62, 80],
+    tableLineWidth: 0.75,
   });
 
+  // Salvar o PDF
   doc.save('registros_cargas.pdf');
 }
